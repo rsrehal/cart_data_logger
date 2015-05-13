@@ -34,6 +34,8 @@ static const uint32_t GPSBaud = 4800;    // Shield GPS
 static const uint32_t IMUBaud = 115200;    // custom IMU
 static const uint32_t PiksiBaud = 115200;  // Piksi GPS
 
+static const char delim = ',';  // delimeter character
+
 // The TinyGPS++ objects
 TinyGPSPlus shield_gps;
 TinyGPSPlus piksi;
@@ -53,15 +55,23 @@ float loadCellVoltage[5] = {0};   // last value is sum total
 unsigned long currentTime = 0;
 unsigned long prevTime = 0;
 unsigned long timeStamp[4] = {0};  // used to store Arduino clock time stamps for data readings
+                                   // order: load cells, IMU, shield GPS, Piksi GPS (time stamps)
 
-float accel[3] = {0};
-float gyro[3] = {0};
-float compass[3] = {0};
-float euler[3] = {0};
-float quatern[4] = {0};
-float IMUvalues[16] = {0};
-
+//float accel[3] = {0};
+//float gyro[3] = {0};
+//float compass[3] = {0};
+//float euler[3] = {0};              // order: roll, pitch, yaw
+//float quatern[4] = {0};
+float IMUvalues[16] = {0};        // order: accel x3, gyro x3, compass x2, euler (roll, pitch, yaw), 
+                                  // quaternion x4
 String IMUinput = "";
+
+// constants for data output precision
+static const int loadCellPrecision = 4;
+static const int IMUPrecision = 4;
+static const int GPSPrecision = 6;
+
+//
 
 void timedOutput()
 {      
@@ -131,30 +141,38 @@ void readLoadCells()
     Serial.println("Printing load cell readings...");
     Serial.println();
 */
+
+    timeStamp[0] = millis();
+
     for(int i = 0; i < 4; i++)
     {
       loadCellVal[i] = analogRead(analogPin[i]);        
 
-
+/*
       // output data
       Serial.print("Load cell ");
       Serial.print(i+1);
       Serial.print(" = , ");
       //Serial.print(" , value = ");
       //Serial.print(loadCellVal[i]);
- 
+*/ 
       loadCellVoltage[i] = ((float)loadCellVal[i] / 1024) * 5;
       //Serial.print(" , \t "); 
 
       totalVoltage += loadCellVoltage[i]; 
+/*      
       Serial.print(loadCellVoltage[i], 3);
 	//Serial.println(" V");
       Serial.println();  
-
+*/
     }//for i
     
-    loadCellVoltage[5] = totalVoltage;
+    loadCellVoltage[4] = totalVoltage;
     
+/*    
+    Serial.print("Time (ms) = ,,,, \t\t\t ");
+    Serial.println(timeStamp[0]);
+*/    
 
 }//readLoadCells()
 
@@ -167,7 +185,7 @@ void readMotionData(void)
   
   //first send byte indicating ready to recieve
   Serial2.print('r');
-  currentTime = millis();
+  timeStamp[1] = millis();
   
   //wait
   //delay(50);
@@ -194,7 +212,8 @@ void readMotionData(void)
      
   Serial2.flush();
   i = 0;
-   
+
+/*   
    // output data to Serial
    Serial.print("Accel X =, ");
    Serial.println(IMUvalues[0], 6);
@@ -217,11 +236,303 @@ void readMotionData(void)
    Serial.print("Quaternion 4 =, ");
    Serial.println(IMUvalues[15], 6);
    Serial.print("Time (ms) =,, ");
-   Serial.println(currentTime);
+   Serial.println(timeStamp[1]);
    Serial.println();
-      
+*/   
   
 }//readMotionData()
+
+void readGPSData(void)
+{  
+  // get and decode GPS NMEA sentence
+  // from shield GPS
+  while (Serial1.available() > 0)
+  {
+    if (shield_gps.encode(Serial1.read()))
+    {
+      timeStamp[2] = millis();
+      //displayInfo();
+      
+      //Serial.println(gps.altitude.meters());    //double
+      //Serial.println(gps.satellites.value());    //u32 (int)
+/*      
+      wgs2utm(shield_gps.location.lat(), shield_gps.location.lng());
+      Serial.print("UTM Easting = ");
+      Serial.println(utm[0]);
+      Serial.print("UTM Northing = ");
+      Serial.println(utm[1]);
+*/      
+    }//if
+    
+  }//while
+
+  if (shield_gps.charsProcessed() < 10)
+  {
+    Serial.println(F("No Shield GPS detected: check wiring."));
+    timeStamp[2] = 0;
+    //while(true);
+  }
+  
+  // get and decode GPS NMEA sentence
+  // from Piksi GPS
+  while (Serial3.available() > 0)
+  {
+    if (piksi.encode(Serial3.read()))
+    {
+      timeStamp[3] = millis();
+      //displayInfo();
+      
+      //Serial.println(gps.altitude.meters());    //double
+      //Serial.println(gps.satellites.value());    //u32 (int)
+/*      
+      wgs2utm(piksi.location.lat(), piksi.location.lng());
+      Serial.print("UTM Easting = ");
+      Serial.println(utm[0]);
+      Serial.print("UTM Northing = ");
+      Serial.println(utm[1]);
+*/      
+    }//if
+    
+  }//while
+
+  if (piksi.charsProcessed() < 10)
+  {
+    Serial.println(F("No Piksi GPS detected: check wiring."));
+    timeStamp[3] = 0;
+    //while(true);
+  }
+  
+  
+}//readGPSdata()
+
+void printHeader(void)
+{
+  // print header for data output
+  // defines order of data output
+  Serial.print(F("Load Cell Arduino Timestamp"));
+  Serial.print(delim);
+  Serial.print(F("Load Cell 1 (V)"));
+  Serial.print(delim);
+  Serial.print(F("Load Cell 2 (V)"));
+  Serial.print(delim);
+  Serial.print(F("Load Cell 3 (V)"));
+  Serial.print(delim);
+  Serial.print(F("Load Cell 4 (V)"));
+  Serial.print(delim);
+  Serial.print(F("Load Cell TOTAL (V)"));
+  Serial.print(delim);
+  
+  Serial.print(F("IMU Arduino Timestamp"));
+  Serial.print(delim);
+  Serial.print(F("Accel X"));
+  Serial.print(delim);
+  Serial.print(F("Accel Y"));
+  Serial.print(delim);
+  Serial.print(F("Accel Z"));
+  Serial.print(delim);
+  Serial.print(F("Gyro X"));
+  Serial.print(delim);
+  Serial.print(F("Gyro Y"));
+  Serial.print(delim);
+  Serial.print(F("Gyro Z"));
+  Serial.print(delim);
+  Serial.print(F("Compass X"));
+  Serial.print(delim);
+  Serial.print(F("Compass Y"));
+  Serial.print(delim);
+  Serial.print(F("Compass Z"));
+  Serial.print(delim);
+  Serial.print(F("Roll (deg)"));
+  Serial.print(delim);
+  Serial.print(F("Pitch (deg)"));
+  Serial.print(delim);
+  Serial.print(F("Yaw (deg)"));
+  Serial.print(delim);  
+  Serial.print(F("Quaternion 1"));
+  Serial.print(delim);  
+  Serial.print(F("Quaternion 2"));
+  Serial.print(delim);  
+  Serial.print(F("Quaternion 3"));
+  Serial.print(delim);  
+  Serial.print(F("Quaternion 4"));
+  Serial.print(delim);
+    
+  Serial.print(F("Shield GPS Arduino Timestamp"));
+  Serial.print(delim);
+  Serial.print(F("GPS Time (UTC)"));
+  Serial.print(delim);
+  Serial.print(F("Latitude (deg)"));
+  Serial.print(delim);
+  Serial.print(F("Longitude (deg)"));
+  Serial.print(delim);
+  Serial.print(F("UTM Easting (m)"));
+  Serial.print(delim);
+  Serial.print(F("UTM Northing (m)"));
+  Serial.print(delim);
+  Serial.print(F("GPS Altitude (m)"));
+  Serial.print(delim);
+  Serial.print(F("# GPS Satellites"));
+  Serial.print(delim);
+  
+  Serial.print(F("Piksi GPS Arduino Timestamp"));
+  Serial.print(delim);
+  Serial.print(F("GPS Time (UTC)"));
+  Serial.print(delim);
+  Serial.print(F("Latitude (deg)"));
+  Serial.print(delim);
+  Serial.print(F("Longitude (deg)"));
+  Serial.print(delim);
+  Serial.print(F("UTM Easting (m)"));
+  Serial.print(delim);
+  Serial.print(F("UTM Northing (m)"));
+  Serial.print(delim);
+  Serial.print(F("GPS Altitude (m)"));
+  Serial.print(delim);
+  Serial.print(F("# GPS Satellites"));
+  Serial.print(delim);
+  
+  //Serial.print(F("GPS Fix Status"));
+  //Serial.print(delim);
+  
+  
+}//printHeader()
+
+void dataOutput(void)
+{
+  // print data for logging
+  int i = 0;
+  
+  // Load cells
+  Serial.print(timeStamp[0]);
+  Serial.print(delim);
+  for(i = 0; i < 5; i++)
+  {
+    Serial.print(loadCellVoltage[i], loadCellPrecision);
+    Serial.print(delim);
+  }//for i
+
+  // custom IMU  
+  Serial.print(timeStamp[1]);
+  Serial.print(delim);
+  for(i = 0; i < 16; i++)
+  {
+    Serial.print(IMUvalues[i], IMUPrecision);
+    Serial.print(delim);
+  }//for
+    
+    
+  // shield GPS
+  Serial.print(timeStamp[2]);
+  Serial.print(delim);
+  
+  if (shield_gps.time.isValid())
+  {
+    if (shield_gps.time.hour() < 10) Serial.print(F("0"));
+    Serial.print(shield_gps.time.hour());
+    Serial.print(F(":"));
+    if (shield_gps.time.minute() < 10) Serial.print(F("0"));
+    Serial.print(shield_gps.time.minute());
+    Serial.print(F(":"));
+    if (shield_gps.time.second() < 10) Serial.print(F("0"));
+    Serial.print(shield_gps.time.second());
+    Serial.print(F("."));
+    if (shield_gps.time.centisecond() < 10) Serial.print(F("0"));
+    Serial.print(shield_gps.time.centisecond());
+    
+    Serial.print(delim);
+  }
+  else
+  {
+    Serial.print(F("INVALID"));
+    Serial.print(delim);
+  }
+  
+  if (shield_gps.location.isValid())
+  {
+    Serial.print(shield_gps.location.lat(), GPSPrecision);
+    Serial.print(delim);
+    Serial.print(shield_gps.location.lng(), GPSPrecision);
+    Serial.print(delim);
+  }
+  else
+  {
+    Serial.print(F("INVALID"));
+    Serial.print(delim);
+    Serial.print(delim);
+  }
+
+  wgs2utm(shield_gps.location.lat(), shield_gps.location.lng());
+  Serial.println(utm[0]);
+  Serial.print(delim);
+  Serial.println(utm[1]);
+  Serial.print(delim);
+  
+  Serial.print(shield_gps.altitude.meters());
+  Serial.print(delim);
+  Serial.print(shield_gps.satellites.value());
+  Serial.print(delim);
+
+
+  // Piksi GPS
+  Serial.print(timeStamp[3]);
+  Serial.print(delim);
+  
+  if (piksi.time.isValid())
+  {
+    if (piksi.time.hour() < 10) Serial.print(F("0"));
+    Serial.print(piksi.time.hour());
+    Serial.print(F(":"));
+    if (piksi.time.minute() < 10) Serial.print(F("0"));
+    Serial.print(piksi.time.minute());
+    Serial.print(F(":"));
+    if (piksi.time.second() < 10) Serial.print(F("0"));
+    Serial.print(piksi.time.second());
+    Serial.print(F("."));
+    if (piksi.time.centisecond() < 10) Serial.print(F("0"));
+    Serial.print(piksi.time.centisecond());
+    
+    Serial.print(delim);
+  }
+  else
+  {
+    Serial.print(F("INVALID"));
+    Serial.print(delim);
+  }
+  
+  if (shield_gps.location.isValid())
+  {
+    Serial.print(piksi.location.lat(), GPSPrecision);
+    Serial.print(delim);
+    Serial.print(piksi.location.lng(), GPSPrecision);
+    Serial.print(delim);
+  }
+  else
+  {
+    Serial.print(F("INVALID"));
+    Serial.print(delim);
+    Serial.print(delim);
+  }
+
+  wgs2utm(piksi.location.lat(), piksi.location.lng());
+  Serial.println(utm[0]);
+  Serial.print(delim);
+  Serial.println(utm[1]);
+  Serial.print(delim);
+  
+  Serial.print(piksi.altitude.meters());
+  Serial.print(delim);
+  Serial.print(piksi.satellites.value());
+  Serial.print(delim);
+
+  //Serial.print(F("GPS Fix Status"));
+  //Serial.print(delim);
+  
+  
+  // prepare for next row of data
+  Serial.println();
+  
+  
+}//dataOutput()
 
 void setup()
 {
@@ -241,20 +552,26 @@ void setup()
   //setup pins
   pinMode(buttonPin, INPUT);
   attachInterrupt(3, capture, LOW);  //interrupt on button press
-                                    //button = active low
+                                    //button = active low                                    
+                  
+                                   
+  printHeader();
+  
   
 }//setup()
 
 void loop()
 {
-  char RXbyte = 0;
+  //char RXbyte = 0;
 
 
   if(captureFlag == 1)
   {
-      readLoadCells();
-      
+      readLoadCells();      
       readMotionData();
+      readGPSData();
+      
+      dataOutput();
       
       captureFlag = 0;
   }
