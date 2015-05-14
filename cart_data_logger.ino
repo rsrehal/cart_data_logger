@@ -575,7 +575,7 @@ void loop()
     
     readLoadCells();   
     //Serial.println("Read load cells successfully");
-    //readMotionData();
+    readMotionData();
     //Serial.println("Read motion data successfully");
     readGPSData();
     
