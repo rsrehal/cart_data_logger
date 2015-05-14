@@ -246,6 +246,8 @@ void readGPSData(void)
 {  
   // get and decode GPS NMEA sentence
   // from shield GPS
+  //Serial1.flush();
+  //delay(500);
   while (Serial1.available() > 0)
   {
     if (shield_gps.encode(Serial1.read()))
@@ -462,9 +464,9 @@ void dataOutput(void)
   }
 
   wgs2utm(shield_gps.location.lat(), shield_gps.location.lng());
-  Serial.println(utm[0]);
+  Serial.print(utm[0]);
   Serial.print(delim);
-  Serial.println(utm[1]);
+  Serial.print(utm[1]);
   Serial.print(delim);
   
   Serial.print(shield_gps.altitude.meters());
@@ -514,9 +516,9 @@ void dataOutput(void)
   }
 
   wgs2utm(piksi.location.lat(), piksi.location.lng());
-  Serial.println(utm[0]);
+  Serial.print(utm[0]);
   Serial.print(delim);
-  Serial.println(utm[1]);
+  Serial.print(utm[1]);
   Serial.print(delim);
   
   Serial.print(piksi.altitude.meters());
@@ -527,6 +529,7 @@ void dataOutput(void)
   //Serial.print(F("GPS Fix Status"));
   //Serial.print(delim);
   
+
   
   // prepare for next row of data
   Serial.println();
@@ -564,25 +567,30 @@ void loop()
 {
   //char RXbyte = 0;
 
-
-  if(captureFlag == 1)
+  if(true)
+  //if(captureFlag == 1)
   {
-      readLoadCells();      
-      readMotionData();
-      readGPSData();
-      
-      dataOutput();
-      
-      captureFlag = 0;
+    
+    //Serial.println("Got to capture flag == 1 !!");
+    
+    readLoadCells();   
+    //Serial.println("Read load cells successfully");
+    //readMotionData();
+    //Serial.println("Read motion data successfully");
+    readGPSData();
+    
+    dataOutput();
+    
+    captureFlag = 0;
   }
 
 
-/*
+
   // Timed output sequence to sync data output rate
   currentTime = millis();  
   timedOutput();  
   prevTime = millis();
-*/
+
 
   
 }//loop()
