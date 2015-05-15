@@ -415,6 +415,7 @@ void printHeader(void)
   Serial.print(F("GPS Fix Quality"));
   Serial.print(delim);  
   
+  Serial.println();
   
 }//printHeader()
 
@@ -577,6 +578,8 @@ void setup()
   attachInterrupt(3, capture, LOW);  //interrupt on button press
                                     //button = active low                                    
   
+
+  delay(10000);            // delay to allow the Logomatic data logger to start up properly
   printHeader();
   
   
