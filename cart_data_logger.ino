@@ -576,8 +576,7 @@ void setup()
   pinMode(buttonPin, INPUT);
   attachInterrupt(3, capture, LOW);  //interrupt on button press
                                     //button = active low                                    
-                  
-  delay(500);                                   
+  
   printHeader();
   
   
