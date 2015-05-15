@@ -246,13 +246,16 @@ void readGPSData(void)
 {  
   // get and decode GPS NMEA sentence
   // from shield GPS
+  
+  int breakFlag = 0;
   //Serial1.flush();
   //delay(500);
-  while (Serial1.available() > 0)
+  while (Serial1.available() > 0 && breakFlag == 0)
   {
     if (shield_gps.encode(Serial1.read()))
     {
       timeStamp[2] = millis();
+      breakFlag = 1;
       //displayInfo();
       
       //Serial.println(gps.altitude.meters());    //double
@@ -271,17 +274,18 @@ void readGPSData(void)
   if (shield_gps.charsProcessed() < 10)
   {
     Serial.println(F("No Shield GPS detected: check wiring."));
-    timeStamp[2] = 0;
+    //timeStamp[2] = 0;
     //while(true);
   }
   
   // get and decode GPS NMEA sentence
   // from Piksi GPS
-  while (Serial3.available() > 0)
+  while (Serial3.available() > 0 && breakFlag == 1)
   {
     if (piksi.encode(Serial3.read()))
     {
       timeStamp[3] = millis();
+      breakFlag == 0;
       //displayInfo();
       
       //Serial.println(gps.altitude.meters());    //double
@@ -300,7 +304,7 @@ void readGPSData(void)
   if (piksi.charsProcessed() < 10)
   {
     Serial.println(F("No Piksi GPS detected: check wiring."));
-    timeStamp[3] = 0;
+    //timeStamp[3] = 0;
     //while(true);
   }
   
@@ -557,7 +561,7 @@ void setup()
   attachInterrupt(3, capture, LOW);  //interrupt on button press
                                     //button = active low                                    
                   
-                                   
+  delay(500);                                   
   printHeader();
   
   
