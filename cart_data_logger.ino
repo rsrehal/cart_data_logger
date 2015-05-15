@@ -14,7 +14,8 @@
   Connect Pin 3 to Pin 18 (TX1)
   Analog 0-3 - Load Cells (post-amplification)
   
-  Adapted from "Load_cell_read" and "GPS_read" projects by same author
+  Adapted from "Load_cell_read" and "GPS_read" projects by same 
+  Uses modified version of TinyGPS++ library
   
   Author: Richie Rehal
   Contact: rsrehal@ucdavis.edu
@@ -23,7 +24,7 @@
   
 */
 
-#include <TinyGPS++.h>
+#include "TinyGPS++.h"    // include user modified library from local directory
 #include <math.h>
 
 #define TIME_INTERVAL 100    //100ms intervals = 10 samples per second
@@ -247,6 +248,19 @@ void readGPSData(void)
   // get and decode GPS NMEA sentence
   // from shield GPS
   
+/*  
+  Now also gives GPS Fix Status/Quality
+        Fix quality:           0 = invalid
+                               1 = GPS fix (SPS)
+                               2 = DGPS fix
+                               3 = PPS fix
+			       4 = Real Time Kinematic
+			       5 = Float RTK
+                               6 = estimated (dead reckoning) (2.3 feature)
+			       7 = Manual input mode
+			       8 = Simulation mode
+*/  
+
   int breakFlag = 0;
   //Serial1.flush();
   //delay(500);
@@ -379,6 +393,8 @@ void printHeader(void)
   Serial.print(delim);
   Serial.print(F("# GPS Satellites"));
   Serial.print(delim);
+  Serial.print(F("GPS Fix Quality"));
+  Serial.print(delim);  
   
   Serial.print(F("Piksi GPS Arduino Timestamp"));
   Serial.print(delim);
@@ -396,9 +412,8 @@ void printHeader(void)
   Serial.print(delim);
   Serial.print(F("# GPS Satellites"));
   Serial.print(delim);
-  
-  //Serial.print(F("GPS Fix Status"));
-  //Serial.print(delim);
+  Serial.print(F("GPS Fix Quality"));
+  Serial.print(delim);  
   
   
 }//printHeader()
@@ -477,6 +492,8 @@ void dataOutput(void)
   Serial.print(delim);
   Serial.print(shield_gps.satellites.value());
   Serial.print(delim);
+  Serial.print(shield_gps.fixQuality.value());
+  Serial.print(delim);
 
 
   // Piksi GPS
@@ -529,9 +546,8 @@ void dataOutput(void)
   Serial.print(delim);
   Serial.print(piksi.satellites.value());
   Serial.print(delim);
-
-  //Serial.print(F("GPS Fix Status"));
-  //Serial.print(delim);
+  Serial.print(piksi.fixQuality.value());
+  Serial.print(delim);
   
 
   
