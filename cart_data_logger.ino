@@ -287,8 +287,8 @@ void readGPSData(void)
 
   if (shield_gps.charsProcessed() < 10)
   {
-    Serial.println(F("No Shield GPS detected: check wiring."));
-    //timeStamp[2] = 0;
+    //Serial.println(F("No Shield GPS detected: check wiring."));
+    timeStamp[2] = 0;
     //while(true);
   }
   
@@ -317,8 +317,8 @@ void readGPSData(void)
 
   if (piksi.charsProcessed() < 10)
   {
-    Serial.println(F("No Piksi GPS detected: check wiring."));
-    //timeStamp[3] = 0;
+    //Serial.println(F("No Piksi GPS detected: check wiring."));
+    timeStamp[3] = 0;
     //while(true);
   }
   
