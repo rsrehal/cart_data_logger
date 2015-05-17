@@ -27,7 +27,7 @@
 #include "TinyGPS++.h"    // include user modified library from local directory
 #include <math.h>
 
-#define TIME_INTERVAL 100    //100ms intervals = 10 samples per second
+#define TIME_INTERVAL 200    //100ms intervals = 10 samples per second
 
 // baud rates for communication
 static const uint32_t COMBaud = 115200;  // data logger + Xbee
@@ -76,7 +76,7 @@ static const int GPSPrecision = 6;
 
 void timedOutput()
 {      
-      while(millis() - prevTime < TIME_INTERVAL)
+      while((millis() - prevTime) < TIME_INTERVAL)
       {
         //wait
       }  
@@ -578,8 +578,8 @@ void setup()
   attachInterrupt(3, capture, LOW);  //interrupt on button press
                                     //button = active low                                    
   
-
-  delay(10000);            // delay to allow the Logomatic data logger to start up properly
+  Serial.flush();
+  delay(1000);            // delay to allow the Logomatic data logger to start up properly
   printHeader();
   
   
