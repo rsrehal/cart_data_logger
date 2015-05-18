@@ -191,7 +191,7 @@ void readMotionData(void)
   //wait
   //delay(50);
   
-  while(i < 16)
+  while((i < 16) && (millis() - timeStamp[1] < TIME_INTERVAL))
   {
     if(Serial2.available())
     {  
@@ -261,15 +261,17 @@ void readGPSData(void)
 			       8 = Simulation mode
 */  
 
-  int breakFlag = 0;
+  int breakFlag1 = 0;
+  int breakFlag2 = 0;
   //Serial1.flush();
   //delay(500);
-  while (Serial1.available() > 0 && breakFlag == 0)
+  while (Serial1.available() > 0)
+  //while (Serial1.available() > 0 && breakFlag1 == 0)
   {
     if (shield_gps.encode(Serial1.read()))
     {
       timeStamp[2] = millis();
-      breakFlag = 1;
+      breakFlag1 = 1;
       //displayInfo();
       
       //Serial.println(gps.altitude.meters());    //double
@@ -294,12 +296,13 @@ void readGPSData(void)
   
   // get and decode GPS NMEA sentence
   // from Piksi GPS
-  while (Serial3.available() > 0 && breakFlag == 1)
+  while (Serial3.available() > 0)
+  //while (Serial3.available() > 0 && breakFlag2 == 0)
   {
     if (piksi.encode(Serial3.read()))
     {
       timeStamp[3] = millis();
-      breakFlag == 0;
+      breakFlag2 = 0;
       //displayInfo();
       
       //Serial.println(gps.altitude.meters());    //double
@@ -321,6 +324,9 @@ void readGPSData(void)
     timeStamp[3] = 0;
     //while(true);
   }
+  
+  breakFlag1 = 0;
+  breakFlag2 = 0;
   
   
 }//readGPSdata()
