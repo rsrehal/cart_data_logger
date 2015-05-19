@@ -191,7 +191,7 @@ void readMotionData(void)
   //wait
   //delay(50);
   
-  while((i < 16) && (millis() - timeStamp[1] < TIME_INTERVAL))
+  while((i < 16) && (millis() - timeStamp[1] < (TIME_INTERVAL / 10)))
   {
     if(Serial2.available())
     {  
@@ -276,24 +276,24 @@ void readGPSData(void)
     char RXbyte = 0;
     i = 0;
     RXbuffer[i++] = Serial1.read();
-    if(RXbyte == '$')
+    if(RXbyte == '$')                      // if start of NMEA sentence
     {
       do{
         RXbuffer[i++] = Serial1.read();
       }while(RXbuffer[i] != '*');
-      RXbuffer[i++] = Serial1.read();
-      RXbuffer[i++] = Serial1.read();
+      RXbuffer[i++] = Serial1.read();      // receive checksum byte 1
+      RXbuffer[i++] = Serial1.read();      // receive checksum byte 2
       
       breakFlag1 = 1;
     }
     
     for(int j = 0; j < i; j++)
-      shield_gps.encode(RXbuffer[j]);
+      shield_gps.encode(RXbuffer[j]);    // encode complete NMEA sentence
     
-    RXbuffer[i] = '\0';
-    String str(RXbuffer);
+    RXbuffer[i] = '\0';      // terminate string
+    String str(RXbuffer);    // convert to String for output if necesarry
     
-    Serial1.flush();
+    Serial1.flush();        // flush any leftover NMEA sentence data for next loop() iteration
 /*    
     if (shield_gps.encode(Serial1.read()))
     {
@@ -332,24 +332,24 @@ void readGPSData(void)
     char RXbyte = 0;
     i = 0;
     RXbuffer[i++] = Serial3.read();
-    if(RXbyte == '$')
+    if(RXbyte == '$')                    // if start of NMEA sentence
     {
       do{
         RXbuffer[i++] = Serial3.read();
       }while(RXbuffer[i] != '*');
-      RXbuffer[i++] = Serial3.read();
-      RXbuffer[i++] = Serial3.read();
+      RXbuffer[i++] = Serial3.read();    // receive checksum byte 1
+      RXbuffer[i++] = Serial3.read();    // receive checksum byte 2
       
       breakFlag2 = 1;
     }
     
     for(int j = 0; j < i; j++)
-      piksi.encode(RXbuffer[j]);
+      piksi.encode(RXbuffer[j]);        // encode complete NMEA sentence
     
-    RXbuffer[i] = '\0';
-    String str(RXbuffer);
+    RXbuffer[i] = '\0';                 // terminate string
+    String str(RXbuffer);               // convert to String for output if necesarry
     
-    Serial3.flush();
+    Serial3.flush();                    // flush any leftover NMEA sentence data for next loop() iteration
     //Serial.print(str);
     //Serial.println();
     //Serial.println(piksi.charsProcessed());
@@ -378,7 +378,7 @@ void readGPSData(void)
  */   
   }//while
   
-    
+/*   
   //if(piksi.location.isUpdated())
   if (piksi.location.isValid())
   {
@@ -388,7 +388,7 @@ void readGPSData(void)
     Serial.print(delim);
     Serial.println(piksi.location.age());
   }
-
+*/
   if (piksi.charsProcessed() < 10)
   {
     //Serial.println(F("No Piksi GPS detected: check wiring."));
@@ -396,6 +396,7 @@ void readGPSData(void)
     //while(true);
   }
   
+  // reset flags just in case
   breakFlag1 = 0;
   breakFlag2 = 0;
   
@@ -691,7 +692,7 @@ void loop()
 
   // Timed output sequence to sync data output rate
   currentTime = millis();  
-  //timedOutput();  
+  timedOutput();  
   prevTime = millis();
 
 
