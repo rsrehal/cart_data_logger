@@ -24,7 +24,7 @@
   
 */
 
-#include "TinyGPS++.h"    // include user modified library from local directory
+#include <TinyGPS++.h>    // include user modified library from local directory
 #include <math.h>
 
 #define TIME_INTERVAL 200    //100ms intervals = 10 samples per second
@@ -70,7 +70,7 @@ String IMUinput = "";
 // constants for data output precision
 static const int loadCellPrecision = 4;
 static const int IMUPrecision = 4;
-static const int GPSPrecision = 6;
+static const int GPSPrecision = 7;
 
 //
 
@@ -247,6 +247,8 @@ void readGPSData(void)
 {  
   // get and decode GPS NMEA sentence
   // from shield GPS
+  char RXbuffer[128] = {0};
+  int i = 0;
   
 /*  
   Now also gives GPS Fix Status/Quality
@@ -265,9 +267,34 @@ void readGPSData(void)
   int breakFlag2 = 0;
   //Serial1.flush();
   //delay(500);
-  while (Serial1.available() > 0)
-  //while (Serial1.available() > 0 && breakFlag1 == 0)
+  
+  timeStamp[2] = millis();
+  
+  //while (Serial1.available() > 0)
+  while (Serial1.available() > 0 && breakFlag1 == 0)
   {
+    char RXbyte = 0;
+    i = 0;
+    RXbuffer[i++] = Serial1.read();
+    if(RXbyte == '$')
+    {
+      do{
+        RXbuffer[i++] = Serial1.read();
+      }while(RXbuffer[i] != '*');
+      RXbuffer[i++] = Serial1.read();
+      RXbuffer[i++] = Serial1.read();
+      
+      breakFlag1 = 1;
+    }
+    
+    for(int j = 0; j < i; j++)
+      shield_gps.encode(RXbuffer[j]);
+    
+    RXbuffer[i] = '\0';
+    String str(RXbuffer);
+    
+    Serial1.flush();
+/*    
     if (shield_gps.encode(Serial1.read()))
     {
       timeStamp[2] = millis();
@@ -276,15 +303,15 @@ void readGPSData(void)
       
       //Serial.println(gps.altitude.meters());    //double
       //Serial.println(gps.satellites.value());    //u32 (int)
-/*      
+     
       wgs2utm(shield_gps.location.lat(), shield_gps.location.lng());
       Serial.print("UTM Easting = ");
       Serial.println(utm[0]);
       Serial.print("UTM Northing = ");
       Serial.println(utm[1]);
-*/      
+      
     }//if
-    
+ */   
   }//while
 
   if (shield_gps.charsProcessed() < 10)
@@ -296,27 +323,71 @@ void readGPSData(void)
   
   // get and decode GPS NMEA sentence
   // from Piksi GPS
-  while (Serial3.available() > 0)
-  //while (Serial3.available() > 0 && breakFlag2 == 0)
+  
+  timeStamp[3] = millis();
+  
+  //while (Serial3.available() > 0)
+  while (Serial3.available() > 0 && breakFlag2 == 0)
   {
+    char RXbyte = 0;
+    i = 0;
+    RXbuffer[i++] = Serial3.read();
+    if(RXbyte == '$')
+    {
+      do{
+        RXbuffer[i++] = Serial3.read();
+      }while(RXbuffer[i] != '*');
+      RXbuffer[i++] = Serial3.read();
+      RXbuffer[i++] = Serial3.read();
+      
+      breakFlag2 = 1;
+    }
+    
+    for(int j = 0; j < i; j++)
+      piksi.encode(RXbuffer[j]);
+    
+    RXbuffer[i] = '\0';
+    String str(RXbuffer);
+    
+    Serial3.flush();
+    //Serial.print(str);
+    //Serial.println();
+    //Serial.println(piksi.charsProcessed());
+ /*
     if (piksi.encode(Serial3.read()))
     {
       timeStamp[3] = millis();
-      breakFlag2 = 0;
+      breakFlag2 = 1;
+      
+      Serial.println(piksi.location.lat(), 8);
+      Serial.println(piksi.location.lng(), 8);
+      Serial.println(piksi.charsProcessed());
+      Serial.println(millis());
       //displayInfo();
       
       //Serial.println(gps.altitude.meters());    //double
       //Serial.println(gps.satellites.value());    //u32 (int)
-/*      
+     
       wgs2utm(piksi.location.lat(), piksi.location.lng());
       Serial.print("UTM Easting = ");
       Serial.println(utm[0]);
       Serial.print("UTM Northing = ");
       Serial.println(utm[1]);
-*/      
+  
     }//if
-    
+ */   
   }//while
+  
+    
+  //if(piksi.location.isUpdated())
+  if (piksi.location.isValid())
+  {
+    Serial.println(piksi.location.lat(), GPSPrecision);
+    Serial.print(delim);
+    Serial.println(piksi.location.lng(), GPSPrecision);
+    Serial.print(delim);
+    Serial.println(piksi.location.age());
+  }
 
   if (piksi.charsProcessed() < 10)
   {
@@ -453,7 +524,8 @@ void dataOutput(void)
   Serial.print(timeStamp[2]);
   Serial.print(delim);
   
-  if (shield_gps.time.isValid())
+  if(shield_gps.time.isUpdated())
+  //if (shield_gps.time.isValid())
   {
     if (shield_gps.time.hour() < 10) Serial.print(F("0"));
     Serial.print(shield_gps.time.hour());
@@ -471,11 +543,12 @@ void dataOutput(void)
   }
   else
   {
-    Serial.print(F("INVALID"));
+    //Serial.print(F("INVALID"));
     Serial.print(delim);
   }
   
-  if (shield_gps.location.isValid())
+  if(shield_gps.location.isUpdated())
+  //if (shield_gps.location.isValid())
   {
     Serial.print(shield_gps.location.lat(), GPSPrecision);
     Serial.print(delim);
@@ -484,15 +557,15 @@ void dataOutput(void)
   }
   else
   {
-    Serial.print(F("INVALID"));
+    //Serial.print(F("INVALID"));
     Serial.print(delim);
     Serial.print(delim);
   }
 
   wgs2utm(shield_gps.location.lat(), shield_gps.location.lng());
-  Serial.print(utm[0]);
+  Serial.print(utm[0], GPSPrecision);
   Serial.print(delim);
-  Serial.print(utm[1]);
+  Serial.print(utm[1], GPSPrecision);
   Serial.print(delim);
   
   Serial.print(shield_gps.altitude.meters());
@@ -507,6 +580,8 @@ void dataOutput(void)
   Serial.print(timeStamp[3]);
   Serial.print(delim);
   
+  
+  //if(piksi.time.isUpdated())
   if (piksi.time.isValid())
   {
     if (piksi.time.hour() < 10) Serial.print(F("0"));
@@ -525,11 +600,12 @@ void dataOutput(void)
   }
   else
   {
-    Serial.print(F("INVALID"));
+    //Serial.print(F("INVALID"));
     Serial.print(delim);
   }
   
-  if (shield_gps.location.isValid())
+  //if(piksi.location.isUpdated())
+  if (piksi.location.isValid())
   {
     Serial.print(piksi.location.lat(), GPSPrecision);
     Serial.print(delim);
@@ -538,15 +614,15 @@ void dataOutput(void)
   }
   else
   {
-    Serial.print(F("INVALID"));
+    //Serial.print(F("INVALID"));
     Serial.print(delim);
     Serial.print(delim);
   }
 
   wgs2utm(piksi.location.lat(), piksi.location.lng());
-  Serial.print(utm[0]);
+  Serial.print(utm[0], GPSPrecision);
   Serial.print(delim);
-  Serial.print(utm[1]);
+  Serial.print(utm[1], GPSPrecision);
   Serial.print(delim);
   
   Serial.print(piksi.altitude.meters());
@@ -613,10 +689,9 @@ void loop()
   }
 
 
-
   // Timed output sequence to sync data output rate
   currentTime = millis();  
-  timedOutput();  
+  //timedOutput();  
   prevTime = millis();
 
 
