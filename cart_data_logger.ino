@@ -662,7 +662,7 @@ void setup()
                                     //button = active low                                    
   
   Serial.flush();
-  delay(1000);            // delay to allow the Logomatic data logger to start up properly
+  delay(5000);            // delay to allow the Logomatic data logger to start up properly
   printHeader();
   
   
